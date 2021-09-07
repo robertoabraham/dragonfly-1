@@ -6,4 +6,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = "2.33.3"
 compute = { git = "https://github.com/al-jshen/compute" }
+structopt = "0.3.23"
+
