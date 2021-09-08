@@ -87,17 +87,19 @@ fn main() {
 
     let start_time = Instant::now();
 
-    let df_dir = env::var("DFREPOSITORIES");
+    let df_dir = "/tmp";
 
-    if df_dir.is_err() {
-        Error::with_description(
-            "Could not find the DFREPOSITORIES environment variable!",
-            ErrorKind::EmptyValue,
-        )
-        .exit();
-    }
+    // let df_dir = env::var("DFREPOSITORIES");
+    // if df_dir.is_err() {
+    //     Error::with_description(
+    //         "Could not find the DFREPOSITORIES environment variable!",
+    //         ErrorKind::EmptyValue,
+    //     )
+    //     .exit();
+    // }
+    // let df_dir = df_dir.unwrap();
 
-    let df_dir = format!("{}\\Dragonfly-MaximDL\\", df_dir.unwrap());
+    let df_dir = format!("{}\\Dragonfly-MaximDL\\", df_dir);
 
     let stepsize = (opt.end - opt.start) / (opt.nstep - 1) as f64;
     let raw_angles = (0..opt.nstep)

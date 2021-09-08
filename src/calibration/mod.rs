@@ -69,6 +69,9 @@ impl<'a> FTAction<'a> {
             let file = File::open(path);
             let mut sim = match file {
                 Ok(f) => {
+                    if self.verbose {
+                        println!("Serializing simulated data from {}", path);
+                    }
                     let res: SimulatedFTData = serde_json::de::from_reader(f)
                         .expect("Could not deserialize simulated FT data!");
                     if self.verbose {
@@ -123,7 +126,14 @@ impl<'a> FTAction<'a> {
                 }
             };
 
-            if let Ok(f) = File::open(path) {
+            // if self.verbose {
+            //     println!("Simulation: {:?}", sim);
+            // }
+
+            if let Ok(f) = File::create(path) {
+                if self.verbose {
+                    println!("Serializing output to {}", path);
+                }
                 serde_json::ser::to_writer(f, &sim).expect("Could not serialize output");
             }
 
