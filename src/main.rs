@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 use clap::{Error, ErrorKind};
 use compute::prelude::Vector;
-use dragonfly_rs::{calibration::{Catalog, FTAction, FTCommand, FrameData}, utils::round_to_digits};
+use dragonfly_rs::{calibration::{CatalogObject, FTAction, FTCommand, FrameData}, utils::round_to_digits};
 
 use std::{env, fs::remove_file, path::PathBuf, process::Command, time::Instant};
 use structopt::{
@@ -87,17 +87,17 @@ fn main() {
 
     let start_time = Instant::now();
 
-    let df_dir = "/tmp";
+    // let df_dir = "/tmp";
 
-    // let df_dir = env::var("DFREPOSITORIES");
-    // if df_dir.is_err() {
-    //     Error::with_description(
-    //         "Could not find the DFREPOSITORIES environment variable!",
-    //         ErrorKind::EmptyValue,
-    //     )
-    //     .exit();
-    // }
-    // let df_dir = df_dir.unwrap();
+    let df_dir = env::var("DFREPOSITORIES");
+    if df_dir.is_err() {
+        Error::with_description(
+            "Could not find the DFREPOSITORIES environment variable!",
+            ErrorKind::EmptyValue,
+        )
+        .exit();
+    }
+    let df_dir = df_dir.unwrap();
 
     let df_dir = format!("{}\\Dragonfly-MaximDL\\", df_dir);
 
@@ -151,7 +151,7 @@ fn main() {
                 command: FTCommand::GET,
                 value: *current_angle,
                 portname: &opt.port,
-                simulation: Some("/tmp/whatever.txt"),
+                simulation: Some(format!("{}\\whatever.txt", df_dir)),
                 verbose: true,
             };
 
@@ -172,24 +172,26 @@ fn main() {
                     println!("Taking image {} of {}", j + 1, opt.naverage);
                 }
 
-                println!("{}", df_dir);
+                let result = if opt.simulation {
+                    format!("Saved C:\\Users\\Dragonfly\\Desktop\\dragonfly-rs\\data\\LaserCalibration\\DRAGONFLY301_{}_light.fits", i + 1)
+                } else {
+                    let expose = Command::new("cscript")
+                        .args(&[
+                            "/nologo",
+                            &format!("{}\\VBScript\\Expose.vbs", df_dir),
+                            "light",
+                            &format!("{}", opt.exptime),
+                            &format!("/tiltgoal:{}", current_angle),
+                            &format!("/rawtilt:{}", raw_angle),
+                        ])
+                        .output()
+                        .expect("Could not run expose.vbs script!");
 
-                let result = Command::new("cscript")
-                    .args(&[
-                        "/nologo",
-                        &format!("{}\\VBScript\\Expose.vbs", df_dir),
-                        "light",
-                        &format!("{}", opt.exptime),
-                        &format!("/tiltgoal:{}", current_angle),
-                        &format!("/rawtilt:{}", raw_angle),
-                    ])
-                    .output()
-                    .expect("Could not run expose.vbs script!");
-
-                let result = String::from_utf8_lossy(&result.stdout);
+                    String::from_utf8_lossy(&expose.stdout).to_string()
+                };
 
                 // TODO: arrayvec with fixed number of fields as extra error check
-                let fields = result.split_whitespace().collect::<Vec<_>>();
+                let fields = result.split_whitespace().collect::<ArrayVec<_, 2>>();
 
                 let filename = fields[1];
 
@@ -204,12 +206,26 @@ fn main() {
 
                 match catalog {
                     Ok(output) => {
-                        let output_str = String::from_utf8_lossy(&output.stdout);
-                        let mut parsed_output: Vec<Catalog> = serde_json::de::from_str(&output_str).expect("Could not parse output from New-ImageCatalog.ps1!");
-                        parsed_output.sort_by(|a, b| a.area.partial_cmp(&b.area).unwrap());
-                        area += parsed_output[0].area;
-                        flux += parsed_output[0].flux;
-                        nobj += parsed_output[0].count;
+                        let mut output_str = String::from_utf8_lossy(&output.stdout).to_string();
+                        // if opt.verbose {
+                        //     println!("Output: {}", output_str);
+                        // }
+                        if !output_str.contains("[") {
+                            assert!(!output_str.contains("]"), "Invalid output from New-ImageCatalog.ps1");
+                            output_str = format!("[{}]", output_str);
+                        }
+                        println!("{}", output_str);
+                        let mut parsed_output: Vec<CatalogObject> = serde_json::de::from_str(&output_str).expect("Could not parse output from New-ImageCatalog.ps1!");
+                        if !parsed_output.is_empty() {
+                            parsed_output.sort_by(|a, b| a.area.partial_cmp(&b.area).unwrap());
+                            area += parsed_output[0].area;
+                            flux += parsed_output[0].flux;
+                            nobj += parsed_output.len();
+                        } else {
+                            if opt.verbose {
+                                println!("No sources detected.");
+                            }
+                        }
                     },
                     Err(_) => {
                         if opt.verbose {

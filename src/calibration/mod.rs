@@ -19,13 +19,35 @@ pub struct FrameData {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct Catalog {
-    #[serde(alias = "Area")]
-    pub area: f64,
+pub struct CatalogObject {
+    #[serde(skip_serializing, alias = "Number")]
+    number: usize,
+    #[serde(skip_serializing, alias = "XImage")]
+    x_image: f64,
+    #[serde(skip_serializing, alias = "YImage")]
+    y_image: f64,
+    #[serde(skip_serializing, alias = "XMinImage")]
+    x_min_image: usize,
+    #[serde(skip_serializing, alias = "YMinImage")]
+    y_min_image: usize,
+    #[serde(skip_serializing, alias = "XMaxImage")]
+    x_max_image: usize,
+    #[serde(skip_serializing, alias = "YMaxImage")]
+    ymaximage: usize,
     #[serde(alias = "FluxAuto")]
     pub flux: f64,
-    #[serde(alias = "Count")]
-    pub count: usize,
+    #[serde(skip_serializing, alias = "Flags")]
+    flags: usize,
+    #[serde(skip_serializing, alias = "FWHM")]
+    fwhm: f64,
+    #[serde(skip_serializing, alias = "MagBest")]
+    mag_best: f64,
+    #[serde(alias = "Area")]
+    pub area: f64,
+    #[serde(skip_serializing, alias = "AxialRatio")]
+    axial_ratio: f64,
+    #[serde(skip_serializing, alias = "Background")]
+    background: f64,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -51,7 +73,7 @@ pub struct FTAction<'a> {
     pub command: FTCommand,
     pub value: f64,
     pub portname: &'a str,
-    pub simulation: Option<&'a str>,
+    pub simulation: Option<String>,
     pub verbose: bool,
 }
 
@@ -65,7 +87,7 @@ pub struct SimulatedFTData {
 
 impl<'a> FTAction<'a> {
     pub fn run(&self) -> Result<(FTCommandResult, f64), Error> {
-        if let Some(path) = self.simulation {
+        if let Some(path) = &self.simulation {
             let file = File::open(path);
             let mut sim = match file {
                 Ok(f) => {
