@@ -86,9 +86,9 @@ fn main() {
 
     let start_time = Instant::now();
 
-    let vbs_dir = env::var("DFREPOSITORIES");
+    let df_dir = env::var("DFREPOSITORIES");
 
-    if vbs_dir.is_err() {
+    if df_dir.is_err() {
         Error::with_description(
             "Could not find the DFREPOSITORIES environment variable!",
             ErrorKind::EmptyValue,
@@ -96,7 +96,7 @@ fn main() {
         .exit();
     }
 
-    let vbs_dir = vbs_dir.unwrap();
+    let df_dir = format!("{}\\Dragonfly-MaximDL\\", df_dir.unwrap());
 
     let stepsize = (opt.end - opt.start) / (opt.nstep - 1) as f64;
     let raw_angles = (0..opt.nstep)
@@ -117,9 +117,12 @@ fn main() {
 
             let tilt_result = Command::new("PowerShell")
                 .args(&[
-                    "&",
-                    "Send-FilterTilterCommand.ps1",
-                    &format!("-simulation:{}", opt.simulation),
+                    format!("{}PowerShell\\Send-FilterTilterCommand.ps1", df_dir).as_str(),
+                    if opt.simulation {
+                        "-simulation"
+                    } else {
+                        ""
+                    },
                     "-Arg",
                     &format!("{}", current_angle),
                     "-Port",
@@ -150,10 +153,12 @@ fn main() {
                     println!("Taking image {} of {}", j + 1, opt.naverage);
                 }
 
+                println!("{}", df_dir);
+
                 let result = Command::new("cscript")
                     .args(&[
                         "/nologo",
-                        &format!("{}\\expose.vbs", vbs_dir),
+                        &format!("{}\\VBScript\\Expose.vbs", df_dir),
                         "light",
                         &format!("{}", opt.exptime),
                         &format!("/tiltgoal:{}", current_angle),
@@ -175,7 +180,7 @@ fn main() {
                 }
 
                 let catalog = Command::new("PowerShell")
-                    .args(&["New-ImageCatalog.ps1", filename, "-Verbose:$false"])
+                    .args(&[format!("{}\\PowerShell\\New-ImageCatalog.ps1", df_dir).as_str(), filename])
                     .output();
 
                 match catalog {
