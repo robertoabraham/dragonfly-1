@@ -7,22 +7,26 @@ use dragonfly_rs::{
 };
 
 use std::{env, fs::remove_file, path::PathBuf, process::Command, time::Instant};
-use structopt::StructOpt;
+use structopt::{
+    clap::AppSettings::{ColorAuto, ColoredHelp},
+    StructOpt,
+};
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "Dragonfly Calibration",
+    name = "Dragonfly: Calibration",
     about = "Calibrates a filter-tilter unit."
 )]
+#[structopt(setting(ColorAuto), setting(ColoredHelp))]
 struct Opt {
     /// USB serial port number
     #[structopt(long, default_value = "COM5", name = "port_name")]
     port: String,
-    /// Degrees of tilt to start the calibration at. Must be in [160., 200.] and greater than the
+    /// Degrees of tilt to start the calibration at. Must be in [160., 200.] and less than the
     /// end angle `end`.
     #[structopt(long, default_value = "160.", name = "start_angle")]
     start: f64,
-    /// Degrees of tilt to end the calibration at. Must be in [160., 200.] and less than the
+    /// Degrees of tilt to end the calibration at. Must be in [160., 200.] and greater than the
     /// start angle `start`.
     #[structopt(long, default_value = "200.", name = "end_angle")]
     end: f64,
