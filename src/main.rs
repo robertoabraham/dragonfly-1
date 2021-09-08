@@ -1,10 +1,7 @@
 use arrayvec::ArrayVec;
 use clap::{Error, ErrorKind};
 use compute::prelude::Vector;
-use dragonfly_rs::{
-    calibration::{Catalog, FrameData},
-    utils::round_to_digits,
-};
+use dragonfly_rs::{calibration::{Catalog, FTAction, FTCommand, FrameData}, utils::round_to_digits};
 
 use std::{env, fs::remove_file, path::PathBuf, process::Command, time::Instant};
 use structopt::{
@@ -119,34 +116,50 @@ fn main() {
                 println!("Iteration {} of {}", i + 1, opt.nstep);
             }
 
-            let tilt_result = Command::new("PowerShell")
-                .args(&[
-                    format!("{}PowerShell\\Send-FilterTilterCommand.ps1", df_dir).as_str(),
-                    if opt.simulation {
-                        "-simulation"
-                    } else {
-                        ""
-                    },
-                    "-Arg",
-                    &format!("{}", current_angle),
-                    "-Port",
-                    &opt.port,
-                ])
-                .output()
-                .expect("Could not run Send-FilterTilterCommand script!");
+            // // this is super hacky. if we can rewrite send-filtertiltercommand in rust the error
+            // // handling would be MUCH nicer
 
-            let tilt_result = String::from_utf8_lossy(&tilt_result.stdout);
+            // let tilt_result = Command::new("PowerShell")
+            //     .args(&[
+            //         format!("{}PowerShell\\Send-FilterTilterCommand.ps1", df_dir).as_str(),
+            //         if opt.simulation {
+            //             "-simulation"
+            //         } else {
+            //             ""
+            //         },
+            //         "-Arg",
+            //         &format!("{}", current_angle),
+            //         "-Port",
+            //         &opt.port,
+            //     ])
+            //     .output()
+            //     .expect("Could not run Send-FilterTilterCommand script!");
+
+            // let tilt_result = String::from_utf8_lossy(&tilt_result.stdout);
+
+            // if opt.verbose {
+            //     println!("Tilt result: {}", tilt_result);
+            // }
+
+            // let tilt_result = tilt_result.split_whitespace().collect::<ArrayVec<_, 2>>();
+
+            // let raw_angle = lexical::parse(tilt_result[1].split(",OK").collect::<ArrayVec<_, 2>>()[0]).unwrap();
+            
+            let tilt_command = FTAction {
+                command: FTCommand::GET,
+                value: *current_angle,
+                portname: &opt.port,
+                simulation: Some("/tmp/whatever.txt"),
+                verbose: true,
+            };
+
+            let tilt_result = tilt_command.run().expect("Filter tilter command failed!");
 
             if opt.verbose {
-                println!("Tilt result: {}", tilt_result);
+                println!("Tilt result: {:?} {}", tilt_result.0, tilt_result.1);
             }
 
-            // this is super hacky. if we can rewrite send-filtertiltercommand in rust the error
-            // handling would be MUCH nicer
-
-            let tilt_result = tilt_result.split_whitespace().collect::<ArrayVec<_, 2>>();
-
-            let raw_angle = lexical::parse(tilt_result[1].split(",OK").collect::<ArrayVec<_, 2>>()[0]).unwrap();
+            let raw_angle = tilt_result.1;
 
             let mut area = 0.;
             let mut flux = 0.;
