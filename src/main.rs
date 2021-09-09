@@ -272,7 +272,7 @@ fn main() {
         .collect::<Vec<_>>();
 
     if opt.verbose {
-        println!("{:?}", data);
+        println!("{}", serde_json::to_string_pretty(&data).unwrap());
     }
 
     let end_time = Instant::now();
