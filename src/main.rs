@@ -4,7 +4,7 @@ use compute::prelude::{
 };
 use csv::ReaderBuilder;
 use dragonfly_rs::calibration::{
-    generate_model_transmission, MODEL_FLUX, MODEL_FLUX_NII, MODEL_TILT,
+    generate_model_transmission, MODEL_FLUX_COARSE, MODEL_FLUX_NII_COARSE, MODEL_TILT_COARSE,
 };
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ fn main() {
                 .has_headers(false)
                 .from_path(
                     format!(
-                    "/home/js/programs/dragonfly-rs/data/PNeMeasurements/measure_source_30{}.txt",
+                    "./data/PNeMeasurements/measure_source_30{}.txt",
                     i
                 )
                     .as_str(),
@@ -45,15 +45,15 @@ fn main() {
             let mut result = fractions
                 .par_iter()
                 .map(|&frac| {
-                    let totalflux = MODEL_FLUX
+                    let totalflux = MODEL_FLUX_COARSE
                         .iter()
-                        .zip(MODEL_FLUX_NII)
+                        .zip(MODEL_FLUX_NII_COARSE)
                         .map(|(x, y)| x + frac * y)
                         .collect::<Vector>();
                     let totalfluxnorm = &totalflux / totalflux.max();
                     let shift_interp = |x: &[f64]| {
                         interp1d_linear_unchecked(
-                            &MODEL_TILT,
+                            &MODEL_TILT_COARSE,
                             &totalfluxnorm,
                             x,
                             ExtrapolationMode::Fill(0.),
