@@ -3,7 +3,9 @@ use compute::prelude::{
     argmin, interp1d_linear_unchecked, linspace, Dot, ExtrapolationMode, Vector,
 };
 use csv::ReaderBuilder;
-use dragonfly_rs::calibration::{PNEFLUX, PNEFLUX_NII, PNETILT};
+use dragonfly_rs::calibration::{
+    generate_model_transmission, MODEL_FLUX, MODEL_FLUX_NII, MODEL_TILT,
+};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -43,15 +45,15 @@ fn main() {
             let mut result = fractions
                 .par_iter()
                 .map(|&frac| {
-                    let totalflux = PNEFLUX
+                    let totalflux = MODEL_FLUX
                         .iter()
-                        .zip(PNEFLUX_NII)
+                        .zip(MODEL_FLUX_NII)
                         .map(|(x, y)| x + frac * y)
                         .collect::<Vector>();
                     let totalfluxnorm = &totalflux / totalflux.max();
                     let shift_interp = |x: &[f64]| {
                         interp1d_linear_unchecked(
-                            &PNETILT,
+                            &MODEL_TILT,
                             &totalfluxnorm,
                             x,
                             ExtrapolationMode::Fill(0.),
