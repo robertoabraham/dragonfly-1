@@ -11,11 +11,17 @@ arrayvec = "0.7.1"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "2.33.3"
 compute = { git = "https://github.com/al-jshen/compute" }
+csv = "1.1.6"
+lazy_static = "1.4.0"
 lexical = "6.0.0"
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.67"
 serialport = "4.0.1"
 structopt = "0.3.23"
+
+[[bin]]
+name = "calibrate_collect"
+path = "bin/collect_calibration_data.rs"
 
 [[bin]]
 name = "calibrate"
