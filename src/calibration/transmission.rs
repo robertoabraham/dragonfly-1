@@ -3,6 +3,7 @@ use compute::prelude::{
 };
 use csv::Reader;
 use lazy_static::lazy_static;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -133,4 +134,32 @@ pub fn integrate_flux(
         .unzip();
 
     trapezoid(&y, Some(&x), None)
+}
+
+pub fn generate_model_transmission(stepsize: f64) -> (Vector, Vector, Vector) {
+    let filter_cwl = 659.9;
+    let pnetilt = arange(0., 20., stepsize);
+    let pneshift = get_tilt_shift(filter_cwl, &pnetilt);
+
+    let pnecwl = 656.3;
+    let pnefluxout = pneshift
+        .par_iter()
+        .map(|&x| integrate_flux(Filter::Bpf31Deg0, Some(x), Wavefront::TCOLL, pnecwl, 0.61))
+        .collect::<Vector>();
+
+    let pnecwl_nii = 658.5;
+    let pnefluxout_nii = pneshift
+        .par_iter()
+        .map(|&x| {
+            integrate_flux(
+                Filter::Bpf31Deg0,
+                Some(x),
+                Wavefront::TCOLL,
+                pnecwl_nii,
+                0.61,
+            )
+        })
+        .collect::<Vector>();
+
+    (pnetilt, pnefluxout, pnefluxout_nii)
 }
