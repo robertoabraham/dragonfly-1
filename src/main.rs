@@ -1,8 +1,6 @@
-use std::fs::File;
-
 use compute::prelude::{arange, Vector};
-use csv::{Reader, ReaderBuilder};
-use dragonfly_rs::calibration::{get_tilt_shift, integrate_flux, Filter, FrameData, Wavefront};
+use csv::ReaderBuilder;
+use dragonfly_rs::calibration::{get_tilt_shift, integrate_flux, Filter, Wavefront};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -13,15 +11,6 @@ pub struct PNRecord {
 }
 
 fn main() {
-    // let file = File::open("/home/js/programs/dragonfly-rs/sim.txt")
-    //     .expect("Could not read file containing calibration data.");
-    // let calibration_data: Vec<FrameData> =
-    //     serde_json::de::from_reader(file).expect("Could not serialize calibration data.");
-
-    // for ele in calibration_data {
-    //     println!("{},{}", ele.raw_angle, ele.spotflux);
-    // }
-
     let rdr = ReaderBuilder::new()
         .delimiter(b' ')
         .has_headers(false)
