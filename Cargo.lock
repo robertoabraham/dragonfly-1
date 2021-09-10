@@ -144,7 +144,7 @@ dependencies = [
 [[package]]
 name = "compute"
 version = "0.2.3"
-source = "git+https://github.com/al-jshen/compute#6ff4b4329eb958d0d668e71ff08802abb2171862"
+source = "git+https://github.com/al-jshen/compute#05817005b91c27985be8df61b7d813d2af1511f6"
 dependencies = [
  "alea",
  "approx_eq",

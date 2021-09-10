@@ -1,4 +1,6 @@
-use compute::prelude::{arange, Vector};
+use compute::prelude::{
+    arange, argmin, interp1d_linear_unchecked, linspace, ExtrapolationMode, Vector,
+};
 use csv::ReaderBuilder;
 use dragonfly_rs::calibration::{get_tilt_shift, integrate_flux, Filter, Wavefront};
 use rayon::prelude::*;
@@ -21,6 +23,10 @@ fn main() {
         .into_deserialize()
         .map(|x| x.expect("Could not deserialize field."))
         .collect::<Vec<PNRecord>>();
+
+    let pnedatatilt = data.iter().map(|x| x.angle).collect::<Vector>();
+    let pnedataflux = data.iter().map(|x| x.flux).collect::<Vector>();
+    let pnedatafluxnorm = &pnedataflux / pnedataflux.max();
 
     let filter_cwl = 659.9;
     let pnetilt = arange(0., 20., 0.1);
@@ -46,12 +52,33 @@ fn main() {
         })
         .collect::<Vector>();
 
-    let total_flux = &pnefluxout + 0.12 * &pnefluxout_nii;
+    let fractions = linspace(0., 0.5, 100);
+    let shifts = linspace(-20., 20., 500);
 
-    for i in 0..pnetilt.len() {
-        println!(
-            "{},{},{},{}",
-            pnetilt[i], pnefluxout[i], pnefluxout_nii[i], total_flux[i]
-        );
-    }
+    let mut results = fractions
+        .par_iter()
+        .map(|&frac| {
+            let totalflux = &pnefluxout + frac * &pnefluxout_nii;
+            let totalfluxnorm = &totalflux / totalflux.max();
+            let shift_interp = |x: &[f64]| {
+                interp1d_linear_unchecked(&pnetilt, &totalfluxnorm, x, ExtrapolationMode::Fill(0.))
+            };
+            let residual = |s: f64| {
+                (shift_interp(&(&pnedatatilt - s)) - &pnedatafluxnorm)
+                    .powi(2)
+                    .sum()
+            };
+            let res_wrt_shifts = shifts.iter().map(|&x| residual(x)).collect::<Vector>();
+            let min_idx = argmin(&res_wrt_shifts);
+
+            (frac, shifts[min_idx], res_wrt_shifts[min_idx])
+        })
+        .collect::<Vec<_>>();
+
+    let best = results
+        .iter()
+        .min_by(|a, b| a.2.partial_cmp(&b.2).unwrap())
+        .unwrap();
+
+    println!("{:?}", best);
 }
