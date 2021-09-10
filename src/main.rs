@@ -1,7 +1,9 @@
 use std::fs::File;
 
+use compute::prelude::{arange, Vector};
 use csv::{Reader, ReaderBuilder};
-use dragonfly_rs::calibration::{load_iridian_data, Filter, FrameData};
+use dragonfly_rs::calibration::{get_tilt_shift, integrate_flux, Filter, FrameData, Wavefront};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -31,13 +33,36 @@ fn main() {
         .map(|x| x.expect("Could not deserialize field."))
         .collect::<Vec<PNRecord>>();
 
-    for i in data {
-        println!("{:?}", i);
+    let filter_cwl = 659.9;
+    let pnetilt = arange(0., 20., 0.1);
+    let pneshift = get_tilt_shift(filter_cwl, &pnetilt);
+
+    let pnecwl = 656.3;
+    let pnefluxout = pneshift
+        .par_iter()
+        .map(|&x| integrate_flux(Filter::Bpf31Deg0, Some(x), Wavefront::TCOLL, pnecwl, 0.61))
+        .collect::<Vector>();
+
+    let pnecwl_nii = 658.5;
+    let pnefluxout_nii = pneshift
+        .par_iter()
+        .map(|&x| {
+            integrate_flux(
+                Filter::Bpf31Deg0,
+                Some(x),
+                Wavefront::TCOLL,
+                pnecwl_nii,
+                0.61,
+            )
+        })
+        .collect::<Vector>();
+
+    let total_flux = &pnefluxout + 0.12 * &pnefluxout_nii;
+
+    for i in 0..pnetilt.len() {
+        println!(
+            "{},{},{},{}",
+            pnetilt[i], pnefluxout[i], pnefluxout_nii[i], total_flux[i]
+        );
     }
-
-    // let iridian = load_iridian_data(Filter::Bpf08Deg0);
-
-    // for i in iridian {
-    //     println!("{:?}", i);
-    // }
 }
