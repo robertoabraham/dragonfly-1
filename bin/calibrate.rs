@@ -1,9 +1,15 @@
 use arrayvec::ArrayVec;
 use clap::{Error, ErrorKind};
-use compute::prelude::Vector;
-use dragonfly_rs::{calibration::{CatalogObject, FTAction, FTCommand, FrameData}, utils::round_to_digits};
+use compute::prelude::{argmin, interp1d_linear_unchecked, linspace, ExtrapolationMode, Vector};
+use dragonfly_rs::{
+    calibration::{
+        CatalogObject, FTAction, FTCommand, FrameData, MODEL_FLUX, MODEL_FLUX_NII, MODEL_TILT,
+    },
+    utils::round_to_digits,
+};
+use rayon::prelude::*;
 
-use std::{env, fs::remove_file, path::PathBuf, process::Command, time::Instant};
+use std::{env, fs::remove_file, process::Command};
 use structopt::{
     clap::AppSettings::{ColorAuto, ColoredHelp},
     StructOpt,
@@ -12,7 +18,8 @@ use structopt::{
 #[derive(Debug, StructOpt)]
 #[structopt(
     name = "Dragonfly: Calibration",
-    about = "Calibrates a filter-tilter unit."
+    about = "Calibrates a filter-tilter unit.",
+    author,
 )]
 #[structopt(setting(ColorAuto), setting(ColoredHelp))]
 struct Opt {
@@ -41,11 +48,11 @@ struct Opt {
     #[structopt(long, default_value = "1")]
     naverage: usize,
     /// Whether to save the captured images.
-    #[structopt(short, long, requires = "tempdir")]
+    #[structopt(short, long)] // , requires = "tempdir")]
     keep: bool,
-    /// Location to save the captured images.
-    #[structopt(long)]
-    tempdir: Option<PathBuf>,
+    // /// Location to save the captured images.
+    // #[structopt(long)]
+    // tempdir: Option<PathBuf>,
     /// Whether to be verbose and print messages.
     #[structopt(long, short = "v")]
     verbose: bool,
@@ -84,8 +91,6 @@ fn main() {
     if opt.exptime <= 0. {
         Error::with_description("Exposure time must be positive.", ErrorKind::InvalidValue).exit()
     }
-
-    let start_time = Instant::now();
 
     // let df_dir = "/tmp";
 
@@ -199,6 +204,8 @@ fn main() {
                     println!("Analyzing the image to select the object with the largest area.");
                 }
 
+                // yuck...
+
                 let catalog = Command::new("PowerShell")
                     .args(&[format!("{}\\PowerShell\\New-ImageCatalog.ps1", df_dir).as_str(), filename])
                     .output();
@@ -258,7 +265,7 @@ fn main() {
             flux /= opt.naverage as f64;
             nobj /= opt.naverage;
 
-            if opt.naverage > 1 {
+            if opt.verbose && opt.naverage > 1 {
                 println!("Averaging results --- Angle: {:.2}\tAverageNObj: {:.0}\tAverageSpotFlux: {:.1}\tAverageArea{:.0}\tNAveraged: {:.0}", current_angle, nobj, flux, area, opt.naverage);
             }
 
@@ -276,8 +283,51 @@ fn main() {
         println!("{:?}", serde_json::to_string_pretty(&data).unwrap());
     }
 
-    let end_time = Instant::now();
-    let elapsed = (end_time - start_time).as_secs();
+    let datatilt = data.iter().map(|x| x.angle).collect::<Vector>();
+    let dataflux = data.iter().map(|x| x.spotflux).collect::<Vector>();
+    let datafluxnorm = &dataflux / dataflux.max();
 
-    println!("{}", elapsed);
+    let fractions = linspace(0., 0.5, 100);
+    let shifts = linspace(-10., 10., 500);
+
+    let result = fractions
+        .par_iter()
+        .map(|&frac| {
+            let totalflux = {
+                MODEL_FLUX
+                    .iter()
+                    .zip(MODEL_FLUX_NII)
+                    .map(|(x, y)| x + frac * y)
+                    .collect::<Vector>()
+            };
+            let totalfluxnorm = &totalflux / totalflux.max();
+            let shift_interp = |x: &[f64]| {
+                interp1d_linear_unchecked(
+                    &MODEL_TILT,
+                    &totalfluxnorm,
+                    x,
+                    ExtrapolationMode::Fill(0., 0.),
+                )
+            };
+            let residual = |s: f64| {
+                (shift_interp(&(&datatilt - s)) - &datafluxnorm)
+                    .powi(2)
+                    .sum()
+            };
+            let res_wrt_shifts = shifts.par_iter().map(|&x| residual(x)).collect::<Vector>();
+            let min_idx = argmin(&res_wrt_shifts);
+
+            (frac, shifts[min_idx], res_wrt_shifts[min_idx])
+        })
+        .collect::<Vec<_>>();
+
+    let best = result
+        .iter()
+        .min_by(|a, b| a.2.partial_cmp(&b.2).unwrap())
+        .unwrap()
+        .to_owned();
+
+    if opt.verbose {
+        println!("{:#?}", best);
+    }
 }

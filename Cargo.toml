@@ -22,9 +22,5 @@ structopt = "0.3.23"
 
 
 [[bin]]
-name = "calibrate_collect"
-path = "bin/collect_calibration_data.rs"
-
-[[bin]]
 name = "calibrate"
-path = "src/main.rs"
+path = "bin/calibrate.rs"

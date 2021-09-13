@@ -122,7 +122,7 @@ pub fn integrate_flux(
         &t_wavelength,
         &t_flux,
         &d_wavelength,
-        ExtrapolationMode::Fill(0.),
+        ExtrapolationMode::Fill(0., 0.),
     );
 
     let (y, x): (Vector, Vector) = itflux
