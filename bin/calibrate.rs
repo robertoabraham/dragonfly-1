@@ -327,7 +327,5 @@ fn main() {
         .unwrap()
         .to_owned();
 
-    if opt.verbose {
-        println!("{:#?}", best);
-    }
+    println!("{:#?}", best);
 }
