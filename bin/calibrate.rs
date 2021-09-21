@@ -3,8 +3,9 @@ use clap::{Error, ErrorKind};
 use compute::prelude::{argmin, interp1d_linear_unchecked, linspace, ExtrapolationMode, Vector};
 use dragonfly_rs::{
     calibration::{
-        CatalogObject, FTAction, FTCommand, FrameData, MODEL_FLUX, MODEL_FLUX_NII, MODEL_TILT,
+        FTAction, FTCommand, FrameData, MODEL_FLUX, MODEL_FLUX_NII, MODEL_TILT,
     },
+    sextractor::CatalogObject,
     utils::round_to_digits,
 };
 use rayon::prelude::*;
