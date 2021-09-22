@@ -30,11 +30,11 @@ int main(int argc, char** argv) {
   float duration;
   sub_expose->add_option("--duration", duration, "Duration of exposure in seconds.")->required();
 
-  char *filepath;
+  std::string filepath;
   sub_expose->add_option("--file", filepath, "Location to save exposure to.")->required();
 
-  bool dark;
-  sub_expose->add_option("--dark", dark, "Take a dark instead of a light frame.");
+  bool dark{false};
+  sub_expose->add_flag("--dark", dark, "Take a dark instead of a light frame.");
   
   int bin_x = 1;
   sub_expose->add_option("--binx", bin_x, "Amount of binning for the x axis. Defaults to 1.");
@@ -45,14 +45,14 @@ int main(int argc, char** argv) {
   // ------------------
   
   CLI11_PARSE(app, argc, argv);
-  
+
   // ------------------
 
 	auto gateway = initialize_gateway();
-  auto camera = initialize_camera(gateway).expect("Could not initialize camera!");
+  auto camera = initialize_camera(gateway).unwrap();
 
-  if (sub_cool->parsed()) {
-    auto cooler = initialize_cooler(camera).expect("Could not initialize cooler!");
+  if (app.got_subcommand("cool")) {
+    auto cooler = initialize_cooler(camera).unwrap();
 
     if (sub_cool->got_subcommand("disable")) {
       disable_cooler(cooler);
@@ -60,25 +60,26 @@ int main(int argc, char** argv) {
     } else if (sub_cool->got_subcommand("get")) {
       std::cout << get_temp_info(camera, cooler) << std::endl;
     } else if (sub_cool->got_subcommand("set")) {
-      auto sensor = initialize_sensor(camera).expect("Could not initialize sensor!");
+      auto sensor = initialize_sensor(camera).unwrap();
       float tgt = set_temp(cooler, sensor, target_temp);
       std::cout << "Setting temperature to " << tgt << " degrees C." << std::endl;
     }
   } 
 
-  else if (sub_expose->parsed()) {
-    auto sensor = initialize_sensor(camera).expect("Could not initialize sensor!");
+  if (app.got_subcommand("expose")) {
+
+    auto sensor = initialize_sensor(camera).unwrap();
 
     ExposureInfo expinfo;
     expinfo.bin_x = bin_x;
     expinfo.bin_y = bin_y;
     expinfo.duration = duration;
-    expinfo.light = dark;
-    expinfo.readout_mode = ReadoutMode::High;
+    expinfo.light = !dark;
+    expinfo.readout_mode = ReadoutMode::MediumStackPro;
 
     std::cout << "Exposure in progress..." << std::endl;
-    dl::IImagePtr im = expose(camera, sensor, expinfo).unwrap();
-    save_image(im, filepath);
+    ExposeResult im = expose(camera, sensor, expinfo).unwrap();
+    save_image(im, filepath.c_str());
     std::cout << "Image buffer saved to " << filepath << std::endl; 
   }
 

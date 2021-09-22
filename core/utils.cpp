@@ -40,7 +40,7 @@ Result<dl::ISensorPtr, const char *> initialize_sensor(dl::ICameraPtr camera) {
   if (!sensor) {
     return Err("Could not initialize sensor!");
   }
-  sensor->abortExposure();
+  /* sensor->abortExposure()->release(); */
   return Ok(sensor);
 }
 

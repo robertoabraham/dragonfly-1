@@ -2,21 +2,22 @@
 #include <fitsio.h>
 #include <vector>
 #include "utils.hpp"
+#include "status.hpp"
 #include "result.h"
 
-Result<dl::IImagePtr, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr sensor, ExposureInfo exp_info) {
-  auto sensor_info = sensor->getInfo();
+Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr sensor, ExposureInfo exp_info) {
+  auto sensor_info = get_sensor_info(sensor);
 
   dl::TSubframe subframe; 
   subframe.top = 0;
   subframe.left = 0;
-  subframe.width = sensor_info.pixelSizeX;
-  subframe.height = sensor_info.pixelSizeY;
+  subframe.width = sensor_info.pixels_x;
+  subframe.height = sensor_info.pixels_y;
   subframe.binX = exp_info.bin_x;
   subframe.binY = exp_info.bin_y;
 
   dl::TExposureOptions exposure_options;
-  exposure_options.duration = exp_info.duration;
+  exposure_options.duration = std::max(exp_info.duration, sensor_info.exposure_duration_min);
   exposure_options.binX = 1;
 	exposure_options.binY = 1;
 	exposure_options.readoutMode = static_cast<int>(exp_info.readout_mode);
@@ -55,32 +56,51 @@ Result<dl::IImagePtr, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr
     return Err(ex.what());
   }
 
-  auto img = sensor->getImage();
+  auto image = sensor->getImage();
 
-  return Ok(img);
+  ExposeResult result;
+  result.buffer = image->getBufferData();
+  result.bufferlen = image->getBufferLength();
+  result.metadata = image->getMetadata();
+  result.expinfo = exposure_options;
+
+  return Ok(result);
 }
 
-void save_image(dl::IImagePtr image, char *filepath) {
+void save_image(ExposeResult expres, const char *filepath) {
 
-  unsigned short * buffer = image->getBufferData();
-  long nelements = image->getBufferLength();
-  auto metadata = image->getMetadata();
+  unsigned short * buffer = expres.buffer;
+  unsigned int nelements = expres.bufferlen;
+  auto expinfo = expres.expinfo;
+  auto metadata = expres.metadata;
 
   fitsfile *fptr;
   int status = 0;
-  int fpixel = 1;
-  long naxis = 2;
   long naxes[2] = { metadata.width, metadata.height };
   int bitpix = USHORT_IMG;
-  float duration = metadata.exposureDuration;
+  const char *frametype = (expinfo.isLightFrame ? "Light Frame" : "Dark Frame");
+
+  remove(filepath);
 
   fits_create_file(&fptr, filepath, &status);
   print_fits_err(status);
-  fits_create_img(fptr, bitpix, naxis, naxes, &status);
+  fits_create_img(fptr, bitpix, 2, naxes, &status);
   print_fits_err(status);
-  fits_write_img(fptr, TUSHORT, fpixel, nelements, buffer, &status);
+
+  fits_write_date(fptr, &status);
   print_fits_err(status);
-  fits_update_key(fptr, TLONG, "EXPOSURE", &duration, "Total exposure time", &status);
+  fits_update_key(fptr, TFLOAT, "EXPOSURE", &metadata.exposureDuration, "Total exposure time in seconds", &status);
+  print_fits_err(status);
+  /* fits_update_key(fptr, TFLOAT, "EGAIN", &metadata.eGain, "Electronic gain in e-/ADU", &status); */
+  /* print_fits_err(status); */
+  fits_update_key(fptr, TUINT, "XBINNING", &metadata.binX, "Binning factor in width", &status);
+  print_fits_err(status);
+  fits_update_key(fptr, TUINT, "YBINNING", &metadata.binY, "Binning factor in height", &status);
+  print_fits_err(status);
+  fits_update_key_str(fptr, "IMAGETYP", frametype, "Type of image", &status);
+  print_fits_err(status);
+
+  fits_write_img(fptr, TUSHORT, 1, nelements, buffer, &status);
   print_fits_err(status);
   fits_close_file(fptr, &status);
   print_fits_err(status);
