@@ -4,7 +4,7 @@
 #include "utils.hpp"
 #include "result.h"
 
-Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr sensor, ExposureInfo exp_info) {
+Result<dl::IImagePtr, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr sensor, ExposureInfo exp_info) {
   auto sensor_info = sensor->getInfo();
 
   dl::TSubframe subframe; 
@@ -55,11 +55,33 @@ Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr 
     return Err(ex.what());
   }
 
-  ExposeResult expose_result;
-
   auto img = sensor->getImage();
-  expose_result.buffer = img->getBufferData();
-  expose_result.buffer_size = img->getBufferLength();
 
-  return Ok(expose_result);
+  return Ok(img);
+}
+
+void save_image(dl::IImagePtr image, char *filepath) {
+
+  unsigned short * buffer = image->getBufferData();
+  long nelements = image->getBufferLength();
+  auto metadata = image->getMetadata();
+
+  fitsfile *fptr;
+  int status = 0;
+  int fpixel = 1;
+  long naxis = 2;
+  long naxes[2] = { metadata.width, metadata.height };
+  int bitpix = USHORT_IMG;
+  float duration = metadata.exposureDuration;
+
+  fits_create_file(&fptr, filepath, &status);
+  print_fits_err(status);
+  fits_create_img(fptr, bitpix, naxis, naxes, &status);
+  print_fits_err(status);
+  fits_write_img(fptr, TUSHORT, fpixel, nelements, buffer, &status);
+  print_fits_err(status);
+  fits_update_key(fptr, TLONG, "EXPOSURE", &duration, "Total exposure time", &status);
+  print_fits_err(status);
+  fits_close_file(fptr, &status);
+  print_fits_err(status);
 }

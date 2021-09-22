@@ -54,3 +54,5 @@ void free_gateway(dl::IGatewayPtr gateway);
 Result<dl::ICameraPtr, const char *> initialize_camera(dl::IGatewayPtr gateway);
 Result<dl::ISensorPtr, const char *> initialize_sensor(dl::ICameraPtr camera);
 Result<dl::ITECPtr, const char *> initialize_cooler(dl::ICameraPtr camera);
+
+void print_fits_err(int status);

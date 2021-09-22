@@ -1,4 +1,5 @@
 #include <dlapi.h>
+#include <fitsio.h>
 #include "result.h"
 #include "utils.hpp"
 
@@ -51,3 +52,9 @@ Result<dl::ITECPtr, const char *> initialize_cooler(dl::ICameraPtr camera) {
   return Ok(cooler);
 }
 
+void print_fits_err(int status) {
+  if (status) {
+     fits_report_error(stderr, status); /* print error report */
+     exit( status );    /* terminate the program, returning error status */
+  }
+}

@@ -27,12 +27,15 @@ int main(int argc, char** argv) {
 
   auto sub_expose = app.add_subcommand("expose", "Take an exposure.");
 
-  bool dark;
-  sub_expose->add_option("--dark", dark, "Take a dark instead of a light frame.");
-  
   float duration;
   sub_expose->add_option("--duration", duration, "Duration of exposure in seconds.")->required();
 
+  char *filepath;
+  sub_expose->add_option("--file", filepath, "Location to save exposure to.")->required();
+
+  bool dark;
+  sub_expose->add_option("--dark", dark, "Take a dark instead of a light frame.");
+  
   int bin_x = 1;
   sub_expose->add_option("--binx", bin_x, "Amount of binning for the x axis. Defaults to 1.");
 
@@ -74,9 +77,9 @@ int main(int argc, char** argv) {
     expinfo.readout_mode = ReadoutMode::High;
 
     std::cout << "Exposure in progress..." << std::endl;
-    auto er = expose(camera, sensor, expinfo).expect("Could not expose!");
-
-    std::cout << "Image buffer saved to " << er.buffer << std::endl; 
+    dl::IImagePtr im = expose(camera, sensor, expinfo).unwrap();
+    save_image(im, filepath);
+    std::cout << "Image buffer saved to " << filepath << std::endl; 
   }
 
 	free_gateway(gateway);
