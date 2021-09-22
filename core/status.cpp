@@ -1,5 +1,5 @@
 #include <dlapi.h>
-#include "utils.h"
+#include "utils.hpp"
 
 SensorInfo sensor_info(dl::ISensorPtr sensor) {
   auto info = sensor->getInfo();

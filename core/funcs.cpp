@@ -1,6 +1,6 @@
 #include <dlapi.h>
 #include <vector>
-#include "utils.h"
+#include "utils.hpp"
 #include "result.h"
 
 Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, ExposureInfo exp_info) {
@@ -65,25 +65,3 @@ Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, ExposureInfo ex
   return Ok(expose_result);
 }
 
-Result<dl::ICameraPtr, int> initialize_camera(dl::IGatewayPtr gateway) {
-
-	gateway->queryUSBCameras();
-
-	auto count = gateway->getUSBCameraCount();
-	if (count == 0) {
-		return Err(0);
-	}
-
-	auto camera = gateway->getUSBCamera(0);
-	if (!camera) {
-		return Err(0);	
-	}
-
-	camera->initialize();
-
-  return Ok(camera);
-}
-
-void free_gateway(dl::IGatewayPtr gateway) {
-  dl::deleteGateway(gateway);
-}

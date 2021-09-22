@@ -1,10 +1,8 @@
-#include <dlapi.h>
-
-#include "funcs.h"
-#include "utils.h"
+#include "funcs.hpp"
+#include "utils.hpp"
 
 int main() {
-	auto pGateway = dl::getGateway();
+	auto gateway = initialize_gateway();
 
 	/* 	// create the file and primary image */
 	/* 	fits_create_file(&fptr, "sample.fits\0", &status); */
@@ -27,7 +25,7 @@ int main() {
 	/* 	fits_close_file(fptr, &status); */
 	/* } */
 
-  auto camera = initialize_camera(pGateway).expect("Could not initialize camera!");
+  auto camera = initialize_camera(gateway).expect("Could not initialize camera!");
   ExposureInfo expinfo;
   expinfo.bin_x = 1;
   expinfo.bin_y = 1;
@@ -38,6 +36,6 @@ int main() {
 
   std::cout << er.buffer << " " << er.buffer_size << std::endl;
 
-	free_gateway(pGateway);
+	free_gateway(gateway);
 	return 0;
 }

@@ -1,7 +1,8 @@
 #pragma once
 #include <dlapi.h>
+#include "result.h"
 
-struct SensorInfo {
+extern "C" struct SensorInfo {
   unsigned int pixels_x;
   unsigned int pixels_y;
   float pixel_size_x;
@@ -14,7 +15,7 @@ struct SensorInfo {
   float exposure_precision;
 };
 
-enum ReadoutMode {
+extern "C" enum ReadoutMode {
   Low = 0,
   Medium = 1,
   High = 2,
@@ -23,17 +24,23 @@ enum ReadoutMode {
   HighStackPro = 5,
 };
 
-struct ExposureInfo {
+extern "C" struct ExposureInfo {
   float duration;
   bool light;
-  ReadoutMode readout_mode;
+  enum ReadoutMode readout_mode;
   int bin_x;
   int bin_y;
 };
 
-void await(dl::IPromisePtr promise);
-
-struct ExposeResult {
+extern "C" struct ExposeResult {
   unsigned short *buffer;
   size_t buffer_size;
 };
+
+void await(dl::IPromisePtr promise);
+
+void free_gateway(dl::IGatewayPtr gateway);
+
+dl::IGatewayPtr initialize_gateway();
+
+Result<dl::ICameraPtr, int> initialize_camera(dl::IGatewayPtr gateway);
