@@ -1,0 +1,24 @@
+/* This file was automatically generated.  Do not edit! */
+int main(int argc,char *argv[]);
+extern int verbose;
+extern char *help[];
+int GetCurrentFocuserPosition(int fd);
+int GetCurrentFocuserPosition(int fd);
+int FocuserPrintStatus(int fd);
+int FocuserPrintStatus(int fd);
+int FocuserPrintCurrentPosition(int fd);
+int FocuserPrintCurrentPosition(int fd);
+int FocuserMove(int fd,int position);
+int FocuserMove(int fd,int position);
+int FocuserGoTo(int fd,int position);
+int FocuserGoTo(int fd,int position);
+int FocuserInit(int fd);
+int FocuserInit(int fd);
+int FocuserSendRawCommand(int fd,char command[16]);
+int FocuserSendRawCommand(int fd,char command[16]);
+int FocuserSetVerboseMode(int fd);
+int FocuserSetVerboseMode(int fd);
+int open_focuser_port(char *portname);
+int open_focuser_port(char *portname);
+int value_from_focus_command_key(char *key);
+int value_from_focus_command_key(char *key);
