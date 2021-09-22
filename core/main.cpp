@@ -2,6 +2,7 @@
 #include "utils.hpp"
 #include "status.hpp"
 #include "CLI11.hpp"
+#include <iostream>
 
 int main(int argc, char** argv) {
 
@@ -10,16 +11,17 @@ int main(int argc, char** argv) {
   app.require_subcommand(1);
 
   // ---------------
-  auto sub_cooler = app.add_subcommand("cool", "Functions related to cooling and temperatures.");
-  sub_cooler->require_subcommand(1);
 
-  sub_cooler->add_subcommand("disable", "Turns off cooling.");
-  sub_cooler->add_subcommand("get", "Get the current temperatures for various parts of the system.");
+  auto sub_cool = app.add_subcommand("cool", "Functions related to cooling and temperatures.");
+  sub_cool->require_subcommand(1);
 
-  auto sub_cooler_set = sub_cooler->add_subcommand("set", "Enables cooling and sets the target cooling temperature.");
+  sub_cool->add_subcommand("disable", "Turns off cooling.");
+  sub_cool->add_subcommand("get", "Get the current temperatures for various parts of the system.");
+
+  auto sub_cool_set = sub_cool->add_subcommand("set", "Enables cooling and sets the target cooling temperature.");
 
   float target_temp;
-  sub_cooler_set->add_option("temp", target_temp, "Target temperature in degrees C.")->required()->take_first();
+  sub_cool_set->add_option("temp", target_temp, "Target temperature in degrees C.")->required()->take_first();
 
   // ----------------
 
@@ -36,33 +38,46 @@ int main(int argc, char** argv) {
 
   int bin_y = 1;
   sub_expose->add_option("--biny", bin_y, "Amount of binning for the y axis. Defaults to 1.");
+
   // ------------------
   
   CLI11_PARSE(app, argc, argv);
+  
+  // ------------------
 
-	/* auto gateway = initialize_gateway(); */
-  /* auto camera = initialize_camera(gateway).expect("Could not initialize camera!"); */
-  /* auto sensor = initialize_sensor(camera).expect("Could not initialize sensor!"); */
-  /* auto cooler = initialize_cooler(camera).expect("Could not initialize cooler!"); */
+	auto gateway = initialize_gateway();
+  auto camera = initialize_camera(gateway).expect("Could not initialize camera!");
 
-  /* auto sensor_info = get_sensor_info(sensor); */
-  /* auto cooler_info = get_temp_info(camera, cooler); */
+  if (sub_cool->parsed()) {
+    auto cooler = initialize_cooler(camera).expect("Could not initialize cooler!");
 
-  /* ExposureInfo expinfo; */
-  /* expinfo.bin_x = 1; */
-  /* expinfo.bin_y = 1; */
-  /* expinfo.duration = 0.2; */
-  /* expinfo.light = true; */
-  /* expinfo.readout_mode = ReadoutMode::High; */
+    if (sub_cool->got_subcommand("disable")) {
+      disable_cooler(cooler);
+      std::cout << "Disabling cooler." << std::endl;
+    } else if (sub_cool->got_subcommand("get")) {
+      std::cout << get_temp_info(camera, cooler) << std::endl;
+    } else if (sub_cool->got_subcommand("set")) {
+      auto sensor = initialize_sensor(camera).expect("Could not initialize sensor!");
+      float tgt = set_temp(cooler, sensor, target_temp);
+      std::cout << "Setting temperature to " << tgt << " degrees C." << std::endl;
+    }
+  } 
 
-  /* auto er = expose(camera, expinfo).expect("Could not expose!"); */
+  else if (sub_expose->parsed()) {
+    auto sensor = initialize_sensor(camera).expect("Could not initialize sensor!");
 
-  /* std::cout << sensor_info.cooler_setpoint_min << " | " << sensor_info.cooler_setpoint_max << std::endl; */
-  /* std::cout << sensor_info.exposure_duration_min << " | " << sensor_info.exposure_precision << std::endl; */
+    ExposureInfo expinfo;
+    expinfo.bin_x = bin_x;
+    expinfo.bin_y = bin_y;
+    expinfo.duration = duration;
+    expinfo.light = dark;
+    expinfo.readout_mode = ReadoutMode::High;
 
-  /* std::cout << std::boolalpha << cooler_info.cooler_enabled << std::endl; */
-  /* std::cout << cooler_info.sensor_temp << std::endl; */
-  /* std::cout << cooler_info.cooler_setpoint << std::endl; */
+    std::cout << "Exposure in progress..." << std::endl;
+    auto er = expose(camera, sensor, expinfo).expect("Could not expose!");
 
-	/* free_gateway(gateway); */
+    std::cout << "Image buffer saved to " << er.buffer << std::endl; 
+  }
+
+	free_gateway(gateway);
 }

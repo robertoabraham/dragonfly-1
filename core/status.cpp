@@ -1,4 +1,5 @@
 #include <dlapi.h>
+#include <iostream>
 #include "utils.hpp"
 
 SensorInfo get_sensor_info(dl::ISensorPtr sensor) {
@@ -34,7 +35,8 @@ CoolerInfo get_temp_info(dl::ICameraPtr camera, dl::ITECPtr cooler) {
   return cooler_info;
 }
 
-float set_temp(dl::ITECPtr cooler, SensorInfo sensor_info, float temp) {
+float set_temp(dl::ITECPtr cooler, dl::ISensorPtr sensor, float temp) {
+  auto sensor_info = get_sensor_info(sensor);
   auto maxtemp = sensor_info.cooler_setpoint_max;
   auto mintemp = sensor_info.cooler_setpoint_min;
 
@@ -52,6 +54,13 @@ float set_temp(dl::ITECPtr cooler, SensorInfo sensor_info, float temp) {
 }
 
 void disable_cooler(dl::ITECPtr cooler) {
-  await(cooler->setState(false, 0));
+  await(cooler->setState(false, 20));
 }
 
+std::ostream& operator<<(std::ostream& os, CoolerInfo info) {
+  os << "Cooler power draw: " << info.cooler_power << "%" << std::endl;
+  /* os << "Cooler target temperature: " << info.cooler_setpoint << "C" << std::endl; */
+  os << "Sensor temperature: " << info.sensor_temp << "C" << std::endl;
+  os << "Heatsink temperature: " << info.heatsink_temp << "C" << std::endl;
+  return os;
+}

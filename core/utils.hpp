@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include <dlapi.h>
 #include "result.h"
 
@@ -45,6 +44,7 @@ struct ExposeResult {
   unsigned short *buffer;
   size_t buffer_size;
 };
+
 
 void await(dl::IPromisePtr promise);
 

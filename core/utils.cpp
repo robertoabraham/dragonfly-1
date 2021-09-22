@@ -1,5 +1,6 @@
 #include <dlapi.h>
 #include "result.h"
+#include "utils.hpp"
 
 void await(dl::IPromisePtr promise) {
   promise->wait();
@@ -38,6 +39,7 @@ Result<dl::ISensorPtr, const char *> initialize_sensor(dl::ICameraPtr camera) {
   if (!sensor) {
     return Err("Could not initialize sensor!");
   }
+  sensor->abortExposure();
   return Ok(sensor);
 }
 
@@ -48,3 +50,4 @@ Result<dl::ITECPtr, const char *> initialize_cooler(dl::ICameraPtr camera) {
   }
   return Ok(cooler);
 }
+

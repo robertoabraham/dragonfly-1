@@ -1,10 +1,10 @@
 #include <dlapi.h>
+#include <fitsio.h>
 #include <vector>
 #include "utils.hpp"
 #include "result.h"
 
-Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, ExposureInfo exp_info) {
-  auto sensor = initialize_sensor(camera).unwrap();
+Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr sensor, ExposureInfo exp_info) {
   auto sensor_info = sensor->getInfo();
 
   dl::TSubframe subframe; 
@@ -29,7 +29,6 @@ Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, ExposureInfo ex
 	} catch (std::exception &ex) {
 		return Err(ex.what());
 	}
-
 
   // start exposure
   try {
