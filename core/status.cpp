@@ -1,7 +1,8 @@
 #include <dlapi.h>
 #include "utils.hpp"
 
-SensorInfo sensor_info(dl::ISensorPtr sensor) {
+SensorInfo get_sensor_info(dl::ISensorPtr sensor) {
+  await(sensor->queryInfo());
   auto info = sensor->getInfo();
 
   SensorInfo sensor_info;
@@ -19,3 +20,38 @@ SensorInfo sensor_info(dl::ISensorPtr sensor) {
 
   return sensor_info;
 }
+
+CoolerInfo get_temp_info(dl::ICameraPtr camera, dl::ITECPtr cooler) {
+  await(camera->queryStatus());
+  auto status = camera->getStatus();
+
+  CoolerInfo cooler_info;
+  cooler_info.cooler_enabled = cooler->getEnabled();
+  cooler_info.cooler_setpoint = cooler->getSetpoint();
+  cooler_info.cooler_power = status.coolerPower;
+  cooler_info.heatsink_temp = status.heatSinkTemperature;
+  cooler_info.sensor_temp = status.sensorTemperature;
+  return cooler_info;
+}
+
+float set_temp(dl::ITECPtr cooler, SensorInfo sensor_info, float temp) {
+  auto maxtemp = sensor_info.cooler_setpoint_max;
+  auto mintemp = sensor_info.cooler_setpoint_min;
+
+  // clamp
+  if (temp > maxtemp) {
+    await(cooler->setState(true, maxtemp));
+    return maxtemp;
+  } else if (temp < mintemp) {
+    await(cooler->setState(true, mintemp));
+    return mintemp;
+  } else {
+    await(cooler->setState(true, temp));
+    return temp;
+  }
+}
+
+void disable_cooler(dl::ITECPtr cooler) {
+  await(cooler->setState(false, 0));
+}
+

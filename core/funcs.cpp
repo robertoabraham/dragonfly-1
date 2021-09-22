@@ -4,7 +4,7 @@
 #include "result.h"
 
 Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, ExposureInfo exp_info) {
-  auto sensor = camera->getSensor(0);
+  auto sensor = initialize_sensor(camera).unwrap();
   auto sensor_info = sensor->getInfo();
 
   dl::TSubframe subframe; 
@@ -64,4 +64,3 @@ Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, ExposureInfo ex
 
   return Ok(expose_result);
 }
-

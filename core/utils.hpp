@@ -1,8 +1,9 @@
 #pragma once
+#include <iostream>
 #include <dlapi.h>
 #include "result.h"
 
-extern "C" struct SensorInfo {
+struct SensorInfo {
   unsigned int pixels_x;
   unsigned int pixels_y;
   float pixel_size_x;
@@ -15,7 +16,15 @@ extern "C" struct SensorInfo {
   float exposure_precision;
 };
 
-extern "C" enum ReadoutMode {
+struct CoolerInfo {
+  bool cooler_enabled;
+  float cooler_power;
+  float cooler_setpoint;
+  float heatsink_temp;
+  float sensor_temp;
+};
+
+enum ReadoutMode {
   Low = 0,
   Medium = 1,
   High = 2,
@@ -24,7 +33,7 @@ extern "C" enum ReadoutMode {
   HighStackPro = 5,
 };
 
-extern "C" struct ExposureInfo {
+struct ExposureInfo {
   float duration;
   bool light;
   enum ReadoutMode readout_mode;
@@ -32,15 +41,16 @@ extern "C" struct ExposureInfo {
   int bin_y;
 };
 
-extern "C" struct ExposeResult {
+struct ExposeResult {
   unsigned short *buffer;
   size_t buffer_size;
 };
 
 void await(dl::IPromisePtr promise);
 
+dl::IGatewayPtr initialize_gateway();
 void free_gateway(dl::IGatewayPtr gateway);
 
-dl::IGatewayPtr initialize_gateway();
-
-Result<dl::ICameraPtr, int> initialize_camera(dl::IGatewayPtr gateway);
+Result<dl::ICameraPtr, const char *> initialize_camera(dl::IGatewayPtr gateway);
+Result<dl::ISensorPtr, const char *> initialize_sensor(dl::ICameraPtr camera);
+Result<dl::ITECPtr, const char *> initialize_cooler(dl::ICameraPtr camera);
