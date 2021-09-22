@@ -1,16 +1,12 @@
 use arrayvec::ArrayVec;
 use clap::{Error, ErrorKind};
 use compute::prelude::{argmin, interp1d_linear_unchecked, linspace, ExtrapolationMode, Vector};
-use dragonfly_rs::{
-    calibration::{
+use dragonfly_rs::{calibration::{
         FTAction, FTCommand, FrameData, MODEL_FLUX, MODEL_FLUX_NII, MODEL_TILT,
-    },
-    sextractor::CatalogObject,
-    utils::round_to_digits,
-};
+    }, sextractor::{CatalogObject, run_sextractor}, utils::round_to_digits};
 use rayon::prelude::*;
 
-use std::{env, fs::remove_file, process::Command};
+use std::{env, fs::remove_file, process::Command, thread::current};
 use structopt::{
     clap::AppSettings::{ColorAuto, ColoredHelp},
     StructOpt,
@@ -93,19 +89,19 @@ fn main() {
         Error::with_description("Exposure time must be positive.", ErrorKind::InvalidValue).exit()
     }
 
-    // let df_dir = "/tmp";
+    let df_dir = "/tmp";
 
-    let df_dir = env::var("DFREPOSITORIES");
-    if df_dir.is_err() {
-        Error::with_description(
-            "Could not find the DFREPOSITORIES environment variable!",
-            ErrorKind::EmptyValue,
-        )
-        .exit();
-    }
-    let df_dir = df_dir.unwrap();
+    // let df_dir = env::var("DFREPOSITORIES");
+    // if df_dir.is_err() {
+    //     Error::with_description(
+    //         "Could not find the DFREPOSITORIES environment variable!",
+    //         ErrorKind::EmptyValue,
+    //     )
+    //     .exit();
+    // }
+    // let df_dir = df_dir.unwrap();
 
-    let df_dir = format!("{}\\Dragonfly-MaximDL\\", df_dir);
+    // let df_dir = format!("{}\\Dragonfly-MaximDL\\", df_dir);
 
     let stepsize = (opt.end - opt.start) / (opt.nstep - 1) as f64;
     let raw_angles = (0..opt.nstep)
@@ -120,44 +116,16 @@ fn main() {
         .iter()
         .enumerate()
         .map(|(i, current_angle)| {
+            
             if opt.verbose {
                 println!("Iteration {} of {}", i + 1, opt.nstep);
             }
-
-            // // this is super hacky. if we can rewrite send-filtertiltercommand in rust the error
-            // // handling would be MUCH nicer
-
-            // let tilt_result = Command::new("PowerShell")
-            //     .args(&[
-            //         format!("{}PowerShell\\Send-FilterTilterCommand.ps1", df_dir).as_str(),
-            //         if opt.simulation {
-            //             "-simulation"
-            //         } else {
-            //             ""
-            //         },
-            //         "-Arg",
-            //         &format!("{}", current_angle),
-            //         "-Port",
-            //         &opt.port,
-            //     ])
-            //     .output()
-            //     .expect("Could not run Send-FilterTilterCommand script!");
-
-            // let tilt_result = String::from_utf8_lossy(&tilt_result.stdout);
-
-            // if opt.verbose {
-            //     println!("Tilt result: {}", tilt_result);
-            // }
-
-            // let tilt_result = tilt_result.split_whitespace().collect::<ArrayVec<_, 2>>();
-
-            // let raw_angle = lexical::parse(tilt_result[1].split(",OK").collect::<ArrayVec<_, 2>>()[0]).unwrap();
             
             let tilt_command = FTAction {
                 command: FTCommand::GET,
                 value: *current_angle,
                 portname: &opt.port,
-                simulation: Some(format!("{}\\whatever.txt", df_dir)),
+                simulation: Some(format!("{}/whatever-{}.txt", df_dir, alea::u32())),
                 verbose: true,
             };
 
@@ -179,7 +147,7 @@ fn main() {
                 }
 
                 let result = if opt.simulation {
-                    format!("Saved C:\\Users\\Dragonfly\\Desktop\\dragonfly-rs\\data\\LaserCalibration\\DRAGONFLY301_{}_light.fits", i + 1)
+                    format!("Saved /home/js/programs/dragonfly-rs/data/LaserCalibration/DRAGONFLY301_{}_light.fits", i + 1)
                 } else {
                     let expose = Command::new("cscript")
                         .args(&[
@@ -205,31 +173,15 @@ fn main() {
                     println!("Analyzing the image to select the object with the largest area.");
                 }
 
-                // yuck...
-
-                let catalog = Command::new("PowerShell")
-                    .args(&[format!("{}\\PowerShell\\New-ImageCatalog.ps1", df_dir).as_str(), filename])
-                    .output();
+                let catalog = run_sextractor(filename);
 
                 match catalog {
-                    Ok(output) => {
-                        let mut output_str = String::from_utf8_lossy(&output.stdout).to_string();
-
-                        if !output_str.contains("[") {
-                            assert!(!output_str.contains("]"), "Invalid output from New-ImageCatalog.ps1");
-                            output_str = format!("[{}]", output_str);
-                        }
-
-                        if opt.verbose {
-                            println!("{}", output_str);
-                        }
-
-                        let mut parsed_output: Vec<CatalogObject> = serde_json::de::from_str(&output_str).expect("Could not parse output from New-ImageCatalog.ps1!");
-                        if !parsed_output.is_empty() {
-                            parsed_output.sort_by(|a, b| a.area.partial_cmp(&b.area).unwrap());
-                            area += parsed_output[0].area;
-                            flux += parsed_output[0].flux;
-                            nobj += parsed_output.len();
+                    Ok(mut output) => {
+                        if !output.is_empty() {
+                            output.sort_by(|a, b| a.area.partial_cmp(&b.area).unwrap());
+                            area += output[0].area;
+                            flux += output[0].flux;
+                            nobj += output.len();
                         } else {
                             if opt.verbose {
                                 println!("No sources detected.");
@@ -274,22 +226,25 @@ fn main() {
                 angle: *current_angle,
                 raw_angle,
                 nobj,
-                spotflux: round_to_digits(flux, 1),
-                spotarea: round_to_digits(area, 1),
+                spotflux: flux,
+                spotarea: area,
             }
         })
         .collect::<Vec<_>>();
 
     if opt.verbose {
-        println!("{:?}", serde_json::to_string_pretty(&data).unwrap());
+        println!("{}", serde_json::to_string_pretty(&data).unwrap());
     }
 
-    let datatilt = data.iter().map(|x| x.angle).collect::<Vector>();
+    let datatilt = data.iter().map(|x| x.angle - 180.).collect::<Vector>();
     let dataflux = data.iter().map(|x| x.spotflux).collect::<Vector>();
     let datafluxnorm = &dataflux / dataflux.max();
 
-    let fractions = linspace(0., 0.5, 100);
-    let shifts = linspace(-10., 10., 500);
+    println!("{:?}", datatilt);
+    println!("{:?}", datafluxnorm);
+
+    let fractions = linspace(0., 1., 100);
+    let shifts = linspace(-25., 25., 500);
 
     let result = fractions
         .par_iter()
@@ -311,8 +266,9 @@ fn main() {
                 )
             };
             let residual = |s: f64| {
-                (shift_interp(&(&datatilt - s)) - &datafluxnorm)
+                ((shift_interp(&(&datatilt - s)) - &datafluxnorm)
                     .powi(2)
+                    * (1. + &datafluxnorm))
                     .sum()
             };
             let res_wrt_shifts = shifts.par_iter().map(|&x| residual(x)).collect::<Vector>();
@@ -328,5 +284,6 @@ fn main() {
         .unwrap()
         .to_owned();
 
-    println!("{:#?}", best);
+    println!("Nii strength: {}", best.0);
+    println!("Tilt shift: {}", best.1);
 }

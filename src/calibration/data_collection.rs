@@ -19,38 +19,6 @@ pub struct FrameData {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct CatalogObject {
-    #[serde(skip_serializing, alias = "Number")]
-    number: usize,
-    #[serde(skip_serializing, alias = "XImage")]
-    x_image: f64,
-    #[serde(skip_serializing, alias = "YImage")]
-    y_image: f64,
-    #[serde(skip_serializing, alias = "XMinImage")]
-    x_min_image: usize,
-    #[serde(skip_serializing, alias = "YMinImage")]
-    y_min_image: usize,
-    #[serde(skip_serializing, alias = "XMaxImage")]
-    x_max_image: usize,
-    #[serde(skip_serializing, alias = "YMaxImage")]
-    y_max_image: usize,
-    #[serde(alias = "FluxAuto")]
-    pub flux: f64,
-    #[serde(skip_serializing, alias = "Flags")]
-    flags: usize,
-    #[serde(skip_serializing, alias = "FWHM")]
-    fwhm: f64,
-    #[serde(skip_serializing, alias = "MagBest")]
-    mag_best: f64,
-    #[serde(alias = "Area")]
-    pub area: f64,
-    #[serde(skip_serializing, alias = "AxialRatio")]
-    axial_ratio: f64,
-    #[serde(skip_serializing, alias = "Background")]
-    background: f64,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum FTCommand {
     GET,
     SET,
