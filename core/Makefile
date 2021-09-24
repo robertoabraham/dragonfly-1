@@ -1,47 +1,14 @@
-# CC = gcc
-# SRCS != fd ".cpp$" .
-# OBJS := $(SRCS:.c=.o)
+CXX = g++
+CXXFLAGS = -g -Wall
+LIBS = -ldlapi -lm -ldl -lcfitsio -ltinyxml2 -lboost_system -lboost_filesystem -lcfitsio
+SOURCES = $(wildcard *.cpp)
+OBJS := $(SOURCES:.cpp=.o)
 
-# TARGET := dfcore
+all: dfcore
 
-# .PHONY: all clean
-
-# all: $(TARGET)
-
-# dfcore: $(OBJS)
-# 	$(CC) -c $(CFLAGS) -o $@ $^
-
-# clean:
-# 	rm -f $(OBJS)
-
-CC = gcc
-CFLAGS = -g -Wall -std=c++14
-LDFLAGS = -l dlapi -l m -l cfitsio -l tinyxml2 -l boost_system -l boost_filesystem
-SRCS := $(wildcard *.cpp)
-OBJDIR = .build
-OBJS := $(SRCS:%.cpp=$(OBJDIR)/%.o)
-
-DEPDIR = .dep
-DEPS := $(SRCS:%.cpp=$(DEPDIR)/%.d)
-DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
-
-.PHONY: clean
-TARGET = dfcore
-
-$(OBJDIR)/%.o: %.cpp | $(OBJDIR) $(DEPDIR)
-	echo [CC] $@
-	$(CC) -c $(CFLAGS) $(DEPFLAGS) -o $@ $<
-
-$(TARGET): $(OBJS)
-	echo [LD] $@
-	$(CC) $(LDFLAGS) -o $@ $^
+dfcore: $(OBJS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 clean:
-	rm -rf $(OBJDIR) $(DEPDIR) $(TARGET)
+	rm -f $(OBJS)
 
-$(OBJDIR) $(DEPDIR):
-	mkdir -p $@
-
-$(DEPFILES):
-
-include $(wildcard $(DEPFILES))
