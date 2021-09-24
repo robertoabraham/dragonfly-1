@@ -58,3 +58,11 @@ Result<dl::ISensorPtr, const char *> initialize_sensor(dl::ICameraPtr camera);
 Result<dl::ITECPtr, const char *> initialize_cooler(dl::ICameraPtr camera);
 
 void print_fits_err(int status);
+
+template <typename T>
+T unwrap_or_fail(Result<T, const char *> res) {
+  if (res.isOk()) {
+    return res.unwrap();
+  }
+  throw std::runtime_error(res.unwrapErr());
+}

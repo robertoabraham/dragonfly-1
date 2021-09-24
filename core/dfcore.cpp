@@ -49,10 +49,10 @@ int main(int argc, char** argv) {
   // ------------------
 
 	auto gateway = initialize_gateway();
-  auto camera = initialize_camera(gateway).unwrap();
+  auto camera = unwrap_or_fail(initialize_camera(gateway));
 
   if (app.got_subcommand("cool")) {
-    auto cooler = initialize_cooler(camera).unwrap();
+    auto cooler = unwrap_or_fail(initialize_cooler(camera));
 
     if (sub_cool->got_subcommand("disable")) {
       disable_cooler(cooler);
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     } else if (sub_cool->got_subcommand("get")) {
       std::cout << get_temp_info(camera, cooler) << std::endl;
     } else if (sub_cool->got_subcommand("set")) {
-      auto sensor = initialize_sensor(camera).unwrap();
+      auto sensor = unwrap_or_fail(initialize_sensor(camera));
       float tgt = set_temp(cooler, sensor, target_temp);
       std::cout << "Setting temperature to " << tgt << " degrees C." << std::endl;
     }
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 
   if (app.got_subcommand("expose")) {
 
-    auto sensor = initialize_sensor(camera).unwrap();
+    auto sensor = unwrap_or_fail(initialize_sensor(camera));
 
     ExposureInfo expinfo;
     expinfo.bin_x = bin_x;
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     expinfo.readout_mode = ReadoutMode::MediumStackPro;
 
     std::cout << "Exposure in progress..." << std::endl;
-    ExposeResult im = expose(camera, sensor, expinfo).unwrap();
+    ExposeResult im = unwrap_or_fail(expose(camera, sensor, expinfo));
     save_image(im, filepath.c_str());
     std::cout << "Image buffer saved to " << filepath << std::endl; 
   }

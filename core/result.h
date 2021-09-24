@@ -851,6 +851,17 @@ struct Result {
         std::terminate();
     }
 
+    T unwrap_or_fail() const {
+        if (isOk()) {
+            return storage().template get<T>();
+        }
+
+        std::fprintf(stderr, storage().template get<E>());
+        std::fprintf(stderr, "\n");
+        std::terminate();
+    }
+
+
 private:
     T expect_impl(std::true_type) const { }
     T expect_impl(std::false_type) const { return storage_.template get<T>(); }
