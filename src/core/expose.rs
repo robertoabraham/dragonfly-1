@@ -7,15 +7,19 @@ pub enum ImageType {
 
 // TODO: make this async!
 pub fn expose(imagetype: ImageType, duration: f64, savepath: &str) {
-    process::Command::new("dfcore").args(&[
-        "expose",
-        match imagetype {
+    let cmd = process::Command::new("dfcore")
+        .args(&[
+            "expose",
+            "--duration",
+            &duration.to_string(),
+            "--file",
+            savepath,
+        ])
+        .arg(match imagetype {
             ImageType::Light => "",
+
             ImageType::Dark => "--dark",
-        },
-        "--duration",
-        &duration.to_string(),
-        "--file",
-        savepath,
-    ]);
+        })
+        .spawn()
+        .expect("Could not spawn dfcore::expose!");
 }
