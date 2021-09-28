@@ -6,6 +6,18 @@
 #include "result.h"
 
 Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr sensor, ExposureInfo exp_info) {
+  if (exp_info.bin_x != 1 || exp_info.bin_y != 1) {
+    await(camera->queryCapability(dl::ICamera::eSupportsOnChipBinning));
+    if (!camera->eSupportsOnChipBinning) {
+      return Err("Binning requested, but camera does not support on-chip binning! Use --binx=1 and --biny=1, and perform binning yourself afterward.");
+    }
+    try {
+      await(sensor->setSetting(dl::ISensor::UseOnChipBinning, 1));
+    } catch (std::exception &ex) {
+    return Err(ex.what());
+    }
+  } 
+
   auto sensor_info = get_sensor_info(sensor);
 
   dl::TSubframe subframe; 
@@ -13,13 +25,13 @@ Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr 
   subframe.left = 0;
   subframe.width = sensor_info.pixels_x;
   subframe.height = sensor_info.pixels_y;
-  subframe.binX = exp_info.bin_x;
-  subframe.binY = exp_info.bin_y;
+  subframe.binX = 1;
+  subframe.binY = 1;
 
   dl::TExposureOptions exposure_options;
   exposure_options.duration = std::max(exp_info.duration, sensor_info.exposure_duration_min);
-  exposure_options.binX = 1;
-	exposure_options.binY = 1;
+  exposure_options.binX = exp_info.bin_x;
+	exposure_options.binY = exp_info.bin_y;
 	exposure_options.readoutMode = static_cast<int>(exp_info.readout_mode);
 	exposure_options.isLightFrame = exp_info.light;
 	exposure_options.useRBIPreflash = false;
