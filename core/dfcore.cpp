@@ -75,12 +75,13 @@ int main(int argc, char** argv) {
     expinfo.bin_y = bin_y;
     expinfo.duration = duration;
     expinfo.light = !dark;
-    expinfo.readout_mode = ReadoutMode::MediumStackPro;
+    expinfo.readout_mode = ReadoutMode::Medium;
 
     std::cout << "Exposure in progress..." << std::endl;
     ExposeResult im = unwrap_or_fail(expose(camera, sensor, expinfo));
+    std::cout << "Exposure complete" << std::endl;
+    std::cout << "Saving image buffer to " << filepath << std::endl; 
     save_image(im, filepath.c_str());
-    std::cout << "Image buffer saved to " << filepath << std::endl; 
   }
 
 	free_gateway(gateway);

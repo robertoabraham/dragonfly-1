@@ -1,6 +1,7 @@
 #include <dlapi.h>
 #include <fitsio.h>
 #include <vector>
+#include <cstring>
 #include "utils.hpp"
 #include "status.hpp"
 #include "result.h"
@@ -8,7 +9,7 @@
 Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr sensor, ExposureInfo exp_info) {
   if (exp_info.bin_x != 1 || exp_info.bin_y != 1) {
     await(camera->queryCapability(dl::ICamera::eSupportsOnChipBinning));
-    if (!camera->eSupportsOnChipBinning) {
+    if (!camera->getCapability(dl::ICamera::eSupportsOnChipBinning)) {
       return Err("Binning requested, but camera does not support on-chip binning! Use --binx=1 and --biny=1, and perform binning yourself afterward.");
     }
     try {
@@ -70,6 +71,15 @@ Result<ExposeResult, const char *> expose(dl::ICameraPtr camera, dl::ISensorPtr 
 
   auto image = sensor->getImage();
 
+  /* auto buffer_length = image->getBufferLength(); */
+
+  /* unsigned short *buffer; */
+  /* buffer = (unsigned short *) malloc(sizeof(unsigned short) * buffer_length); */
+
+  /* std::cout << "Moving to buffer" << std::endl; */
+  /* std::memmove(buffer, image->getBufferData(), sizeof(unsigned short) * buffer_length); */
+  /* std::cout << "Moved to buffer" << std::endl; */
+
   ExposeResult result;
   result.buffer = image->getBufferData();
   result.bufferlen = image->getBufferLength();
@@ -89,7 +99,7 @@ void save_image(ExposeResult expres, const char *filepath) {
   fitsfile *fptr;
   int status = 0;
   long naxes[2] = { metadata.width, metadata.height };
-  int bitpix = USHORT_IMG;
+  int bitpix = SHORT_IMG;
   const char *frametype = (expinfo.isLightFrame ? "Light Frame" : "Dark Frame");
 
   remove(filepath);
@@ -112,7 +122,7 @@ void save_image(ExposeResult expres, const char *filepath) {
   fits_update_key_str(fptr, "IMAGETYP", frametype, "Type of image", &status);
   print_fits_err(status);
 
-  fits_write_img(fptr, TUSHORT, 1, nelements, buffer, &status);
+  fits_write_img(fptr, TSHORT, 1, nelements, buffer, &status);
   print_fits_err(status);
   fits_close_file(fptr, &status);
   print_fits_err(status);

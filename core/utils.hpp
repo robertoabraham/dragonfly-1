@@ -41,7 +41,7 @@ struct ExposureInfo {
 };
 
 struct ExposeResult {
-  unsigned short * buffer;
+  unsigned short *buffer;
   unsigned int bufferlen;
   dl::TImageMetadata metadata;
   dl::TExposureOptions expinfo;
