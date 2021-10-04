@@ -1,3 +1,3 @@
-# dragonfly-rs
+# dragonfly
 
 Software for Dragonfly Narrowband.
