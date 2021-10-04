@@ -56,7 +56,7 @@ pub fn run_sextractor(filepath: &str) -> Result<Vec<CatalogObject>, String> {
                 .args(&[
                     filepath,
                     "-c",
-                    "/home/js/programs/dragonfly-rs/src/sextractor/dragonfly.sex",
+                    "/home/js/programs/dragonfly/src/sextractor/dragonfly.sex",
                 ])
                 .output()
                 .expect("Could not run SExtractor on file.");

@@ -1,9 +1,9 @@
 [package]
-name = "dragonfly-rs"
+name = "dragonfly"
 version = "0.1.0"
 edition = "2018"
 authors = ["Jeff Shen <jshen2014@hotmail.com>"]
-repository = "https://github.com/al-jshen/dragonfly-rs"
+repository = "https://github.com/al-jshen/dragonfly"
 description = "Scripts for controlling the Dragonfly Telephoto Array."
 
 [dependencies]
@@ -11,7 +11,7 @@ alea = "0.2.2"
 arrayvec = "0.7.1"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "2.33.3"
-compute = { git = "https://github.com/al-jshen/compute" }
+compute = { git = "https://github.com/al-jshen/compute", features = ["blas"] }
 csv = "1.1.6"
 fitsio = "0.17.0"
 image2 = { version = "1.0.0", features = ["oiio", "parallel"] }

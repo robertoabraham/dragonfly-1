@@ -34,7 +34,7 @@ fn main() {
 
     let lpl = conv2d(&data, LAPLACIAN_KERNEL_1);
 
-    let mut writer = std::fs::File::create("/tmp/test.txt").unwrap();
-    writeln!(&mut writer, "{}", lpl).unwrap();
+    println!("{}", lpl.var());
+
     // expose::expose(expose::ImageType::Light, 0.1, "/code/out/test.fits");
 }

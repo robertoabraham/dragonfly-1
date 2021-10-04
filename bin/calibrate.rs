@@ -147,7 +147,7 @@ fn main() {
                 }
 
                 let result = if opt.simulation {
-                    format!("Saved /home/js/programs/dragonfly-rs/data/LaserCalibration/DRAGONFLY301_{}_light.fits", i + 1)
+                    format!("Saved /home/js/programs/dragonfly/data/LaserCalibration/DRAGONFLY301_{}_light.fits", i + 1)
                 } else {
                     let expose = Command::new("cscript")
                         .args(&[
