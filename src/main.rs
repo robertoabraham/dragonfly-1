@@ -1,7 +1,6 @@
 use compute::prelude::*;
-use dragonfly_rs::core::*;
-use dragonfly_rs::focuser::*;
-use image2::Filter;
+use dragonfly::core::*;
+use dragonfly::focuser::*;
 use std::io::Write;
 
 fn main() {

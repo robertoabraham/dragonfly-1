@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 use clap::{Error, ErrorKind};
 use compute::prelude::{argmin, interp1d_linear_unchecked, linspace, ExtrapolationMode, Vector};
-use dragonfly_rs::{calibration::{
+use dragonfly::{calibration::{
         FTAction, FTCommand, FrameData, MODEL_FLUX, MODEL_FLUX_NII, MODEL_TILT,
     }, sextractor::{CatalogObject, run_sextractor}, utils::round_to_digits};
 use rayon::prelude::*;

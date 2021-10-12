@@ -11,10 +11,10 @@ alea = "0.2.2"
 arrayvec = "0.7.1"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "2.33.3"
-compute = { git = "https://github.com/al-jshen/compute", features = ["blas"] }
+compute = { git = "https://github.com/al-jshen/compute"} #, features = ["blas"] }
 csv = "1.1.6"
-fitsio = "0.17.0"
-image2 = { version = "1.0.0", features = ["oiio", "parallel"] }
+fitsio = { git = "https://github.com/mindriot101/rust-fitsio" }
+# image2 = { version = "1.0.0", features = ["oiio", "parallel"] }
 lazy_static = "1.4.0"
 lexical = "6.0.0"
 rayon = "1.5.1"
